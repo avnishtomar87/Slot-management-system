@@ -6,8 +6,6 @@ const { promisify } = require("util");
 const sendEmail = require("../utils/email");
 const crypto = require("crypto");
 
-
-console.log()
 const filterObj = (obj, ...allowedFields) => {
     const newObj = {};
     Object.keys(obj).forEach((el) => {
