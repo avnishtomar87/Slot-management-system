@@ -1,51 +1,3 @@
-// const express = require("express");
-// var favicon = require('serve-favicon');
-// const path = require("path")
-// const morgan = require("morgan")
-// require("./models/index")
-// const dotenv = require("dotenv")
-// dotenv.config({path:"./config.env"})
-// const AppError = require('./utils/appError');
-// const globalErrorHandler = require('./controllers/errroController');
-// const app = express();
-
-// app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')))
-// app.use(morgan("dev"))
-// app.use(express.json())
-// app.use(express.urlencoded({extended:true}))
-// app.set('view engine', 'pug')
-// app.set("views", path.join(__dirname, "views"));
-// // app.set('views', './views')
-// app.use('/static', express.static(path.join(__dirname, 'public')))
-// // app.use(express.static(path.join(__dirname, 'public')))
-
-// app.get("/getview", (req, res) => {
-//     res.render("firstview")
-// })
-
-// const ToursRouter = require("./routes/tours.routes")
-// app.use(ToursRouter)
-
-// // app.route("/tours").get(async(req,res)=>{
-// //     const data = await tours.find();
-// //         console.log(data)
-// //         res.send(data)
-// // }).post(async(req,res)=>{
-// //     console.log(req.body)
-// //     const data = new tours(req.body)
-// //     const result = await data.save();
-// //     console.log(result)
-// //     res.send(result)
-// // })
-
-// app.all('*', (req, res, next) => {
-//     next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
-//   });
-
-//   app.use(globalErrorHandler);
-
-// module.exports = app;
-
 const express = require("express");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
@@ -56,18 +8,18 @@ const hpp = require("hpp");
 
 const AppError = require("./utils/appError");
 const globalErrorHandler = require("./controllers/errroController");
-// const tourRouter = require("./routes/tours.routes");
-// const authRouter = require("./routes/auth.routes");
-// const userRouter = require("./routes/users.routes");
 const interviewerRouter = require("./routes/interviewer.routes");
 const intervieweeRouter = require("./routes/interviewee.routes");
 const availabiltyRouter = require("./routes/availabilty.routes");
+const appointmentRouter = require("./routes/appoinment.routes");
 
 const app = express();
 
 // 1) MIDDLEWARES
 //For secure HTTP headers
 app.use(helmet());
+
+
 
 //for logging development
 if (process.env.NODE_ENV === "development") {
@@ -115,12 +67,11 @@ app.use((req, res, next) => {
 });
 
 // 3) ROUTES
-// app.use("/api/v1", tourRouter);
-// app.use("/api/v1", authRouter);
-// app.use("/api/v1", userRouter);
 app.use("/api/v1", interviewerRouter);
 app.use("/api/v1", intervieweeRouter);
 app.use("/api/v1", availabiltyRouter);
+app.use("/api/v1", appointmentRouter);
+
 
 //for handling undefined routes
 app.all("*", (req, res, next) => {

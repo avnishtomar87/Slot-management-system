@@ -15,36 +15,12 @@ const interviewerSchema = new mongoose.Schema({
     lowercase: true,
     validate: [validator.isEmail, "please provide a valid email"],
   },
-//   role: {
-//     type: String,
-//     enum: ["user", "guide", "lead-guide", "admin"],
-//     default: "user",
-//   },
   password: {
     type: String,
     required: [true, "please enter a valid password"],
     // minlength: 8,
     select: false,
   },
-//   passwordConfirm: {
-//     type: String,
-//     required: [true, "please enter a valid passwordConfirm"],
-//     //this will only works with CREATE and SAVE
-//     validate: {
-//       validator: function (el) {
-//         return el == this.password;
-//       },
-//       message: "password does not match",
-//     },
-//   },
-//   passwordChangedAt: Date,
-//   passwordResetToken: String,
-//   passwordResetExpires: Date,
-//   active: {
-//     type: Boolean,
-//     default: true,
-//     select: false,
-//   },
 });
 
 interviewerSchema.pre("save", async function (next) {

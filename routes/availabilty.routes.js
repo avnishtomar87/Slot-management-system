@@ -7,9 +7,16 @@ router
   .get(AvailabiltyController.GetAvailabilities);
 
 router
-  .route("/availabilty/:id")
+  .route("/availabilty/:interviewerId")
   .get(AvailabiltyController.GetAvailabilityBYId)
   .patch(AvailabiltyController.UpdateAvailabilty)
   .delete(AvailabiltyController.DeleteAvailabilty);
+
+  
+router
+.route("/availabilty/deleteSlot/:interviewerId")
+.delete(AvailabiltyController.DeleteSlot);
+
+
 
 module.exports = router;

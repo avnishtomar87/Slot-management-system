@@ -1,18 +1,23 @@
-const tours = require("../models/tours");
 const { ApiFeatures } = require("../utils/apiFeatures");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
 const Availability = require("../models/availability")
+const { filterSlots } = require("../helpers/filterSlots")
 
-// const aliasTopTour = (req, res, next) => {
-//   req.query.limit = "5";
-//   req.query.fields = "name,price,ratingsAverage,duration ,difficulty";
-//   req.query.sort = "-ratingsAverage,price";
-//   next();
-// };
+const AddAvailability = catchAsync(async (req, res, next) => {
+    const { interviewerId, slots } = req.body;
 
-const AddAvailability = catchAsync(async (req, res) => {
-    const data = await Availability.create(req.body);
+    if (!interviewerId || !slots) {
+        return next(new AppError("interviewerId and slots are required", 400));
+    }
+
+    const availability = await Availability.findOne({
+        interviewerId: req.body.interviewerId
+    })
+    if (availability) {
+        return next(new AppError("Availability already created please update the slots", 400));
+    }
+    const data = await Availability.create({ interviewerId, slots });
     res.status(201).json({
         status: "success",
         data,
@@ -26,35 +31,54 @@ const GetAvailabilities = catchAsync(async (req, res) => {
         .sort()
         .limitFields();
 
-    const tour = await features.query; //execute the query
+    const availability = await features.query; //execute the query
 
     res.status(201).json({
         status: "success",
-        count: tour.length,
-        Availability: tour,
+        count: availability.length,
+        Availability: availability,
     });
 });
 
-const GetAvailabilityBYId = catchAsync(async (req, res) => {
-    const tour = await Availability.findOne({
-        interviewerId: req.params.id
-    }).populate('interviewerId', { name: 1, email: 1 });
+const GetAvailabilityBYId = catchAsync(async (req, res, next) => {
+    const { interviewerId } = req.params;
+    const availability = await Availability.findOne({ interviewerId }).populate('interviewerId', { name: 1, email: 1 });
     // const tour = await tours.findOne({_id:req.params.id})//same work as above
-    if (!tour) {
+    if (!availability) {
         return next(new AppError("No availability found with that ID", 404));
     }
     res.status(201).json({
         status: "success",
-        count: tour.length,
-        Availability: tour,
+        count: availability.length,
+        Availability: availability,
     });
 });
 
-const UpdateAvailabilty = catchAsync(async (req, res) => {
-    const data = await Availability.findByIdAndUpdate(req.params.id, req.body, {
-        new: true,
-        runValidators: true,
+const UpdateAvailabilty = catchAsync(async (req, res, next) => {
+    const { slots } = req.body;
+    const { interviewerId } = req.params;
+
+    if (!interviewerId || !slots || !slots[0]) {
+        return next(new AppError("please enter a valid slot", 404));
+    }
+    const availability = await Availability.findOne({ interviewerId })
+    const days = req.body.slots[0].day;
+    const times = req.body.slots[0].time;
+    const dbSlots = availability.slots;
+    function containsObject(obj, dbSlots) {
+        return dbSlots.some(elem => elem.day === days && elem.time === times)
+    }
+    const containsObjects = containsObject(req.body.slots[0], dbSlots);
+    if (containsObjects === true) {
+        return next(new AppError("This slot is already in your slot list", 404));
+    }
+    const availabilityId = availability._id;
+    await Availability.updateOne({ id: availabilityId }, {
+        $push: {
+            slots: req.body.slots
+        }
     });
+    const data = await Availability.findOne({ interviewerId })
     res.status(200).json({
         status: "success",
         data,
@@ -62,9 +86,12 @@ const UpdateAvailabilty = catchAsync(async (req, res) => {
 });
 
 const DeleteAvailabilty = catchAsync(async (req, res, next) => {
-    const data = await Availability.findByIdAndDelete(req.params.id);
+    const { interviewerId } = req.params;
+    const availability = await Availability.findOne({ interviewerId })
+
+    const data = await Availability.findByIdAndDelete(availability._id);
     if (!data) {
-        return next(new AppError("No tour found with that ID", 404));
+        return next(new AppError("No availability found with that ID", 404));
     }
     res.status(200).json({
         status: "success",
@@ -72,83 +99,32 @@ const DeleteAvailabilty = catchAsync(async (req, res, next) => {
     });
 });
 
-// const getTourStats = catchAsync(async (req, res) => {
-//   const stats = await tours.aggregate([
-//     {
-//       $match: { ratingsAverage: { $gte: 4.5 } },
-//     },
-//     {
-//       $group: {
-//         _id: { $toUpper: "$difficulty" },
-//         numTours: { $sum: 1 },
-//         numRatings: { $sum: "$ratingsQuantity" },
-//         avgRating: { $avg: "$ratingsAverage" },
-//         avgPrice: { $avg: "$price" },
-//         minPrice: { $min: "$price" },
-//         maxPrice: { $max: "$price" },
-//       },
-//     },
-//     {
-//       $sort: { avgPrice: 1 },
-//     },
-//     // {
-//     //   $match: { _id: { $ne: 'EASY' } }
-//     // }
-//   ]);
+const DeleteSlot = catchAsync(async (req, res, next) => {
+    const { interviewerId } = req.params;
+    const { day, time } = req.body;
 
-//   res.status(200).json({
-//     status: "success",
-//     data: {
-//       stats,
-//     },
-//   });
-// });
+    if (!interviewerId || !day || !time) {
+        return next(new AppError("interviewerId and day and time are required", 400));
+    }
+    const availability = await Availability.findOne({ interviewerId })
 
-// const getMonthlyPlan = catchAsync(async (req, res) => {
-//   const year = req.params.year * 1; // 2021
+    const dbSlots = availability.slots;
 
-//   const plan = await tours.aggregate([
-//     {
-//       $unwind: "$startDates",
-//     },
-//     {
-//       $match: {
-//         startDates: {
-//           $gte: new Date(`${year}-01-01`),
-//           $lte: new Date(`${year}-12-31`),
-//         },
-//       },
-//     },
-//     {
-//       $group: {
-//         _id: { $month: "$startDates" },
-//         numTourStarts: { $sum: 1 },
-//         tours: { $push: "$name" },
-//       },
-//     },
-//     {
-//       $addFields: { month: "$_id" },
-//     },
-//     {
-//       $project: {
-//         _id: 0,
-//       },
-//     },
-//     {
-//       $sort: { numTourStarts: -1 },
-//     },
-//     {
-//       $limit: 12,
-//     },
-//   ]);
+    const filteredSlots = filterSlots(dbSlots, day, time)
+   
+    const data = await Availability.findByIdAndUpdate(availability._id, {
+        slots: filteredSlots,
+    }, {
+        new: true,
+        runValidators: true,
+    });
+    res.status(200).json({
+        status: "success",
+        data: data,
+    });
+});
 
-//   res.status(200).json({
-//     status: "success",
-//     data: {
-//       plan,
-//     },
-//   });
-// });
+
 
 module.exports = {
     AddAvailability,
@@ -156,4 +132,5 @@ module.exports = {
     GetAvailabilityBYId,
     UpdateAvailabilty,
     DeleteAvailabilty,
+    DeleteSlot
 };
