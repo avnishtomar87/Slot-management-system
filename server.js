@@ -12,7 +12,7 @@ dotenv.config({ path: "./config.env" });
 const app = require("./app");
 
 mongoose
-  .connect("mongodb://0.0.0.0:27017/natours", {
+  .connect(process.env.DATABASE_LOCAL, {
     useNewUrlParser: true,
   })
   .then(() => console.log("DB connection successful!"));

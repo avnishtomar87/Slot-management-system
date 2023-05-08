@@ -2,9 +2,9 @@ const { ApiFeatures } = require("../utils/apiFeatures");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
 const Appointment = require("../models/appointments");
-const Availability = require("../models/availability")
+// const Availability = require("../models/availability")
 const mongoose = require('mongoose')
-const { filterSlots } = require("../helpers/filterSlots")
+const { checkInterviewerAvailability, filterSlotAndUpdate } = require("../helpers/filterSlots")
 
 const AddAppointment = catchAsync(async (req, res, next) => {
     const { intervieweeId, interviewerId, day, time } = req.body;
@@ -19,7 +19,7 @@ const AddAppointment = catchAsync(async (req, res, next) => {
         .sort()
         .limitFields();
 
-    const appointment = await features.query; //execute the query
+    const appointment = await features.query;
 
     if (appointment) {
         let obj = appointment.find((o) => {
@@ -31,7 +31,7 @@ const AddAppointment = catchAsync(async (req, res, next) => {
         });
 
         if (obj && obj.day === day && obj.time === time) {
-            return next(new AppError("There is Already schedule interviewer", 404));
+            return next(new AppError("There is Already schedule interview for interviewer", 404));
         }
 
         if (objInterviewee && objInterviewee.day === day && objInterviewee.time === time) {
@@ -39,20 +39,17 @@ const AddAppointment = catchAsync(async (req, res, next) => {
         }
 
     }
+    const obj = await checkInterviewerAvailability(interviewerId, day, time, next)
+    if (!obj) {
+        return next(new AppError("Interviewer Not available on the given slots", 400));
+    }
 
     const data = await Appointment.create(req.body);
-    if (data) {
-        const availability = await Availability.findOne({ interviewerId })
-        const slots = availability.slots;
-
-        const filteredSlots = filterSlots(slots, day, time)
-        await Availability.findByIdAndUpdate(availability._id, {
-            slots: filteredSlots,
-        }, {
-            new: true,
-            runValidators: true,
-        });
+    if (!data) {
+        return next(new AppError("Internal Server Error", 400));
     }
+    await filterSlotAndUpdate(interviewerId, day, time, next)
+
     res.status(201).json({
         status: "success",
         data,
@@ -121,10 +118,46 @@ const DeleteAppointment = catchAsync(async (req, res, next) => {
 });
 
 
+const GetAllIntervieweeAppointmentBYId = catchAsync(async (req, res, next) => {
+    const { intervieweeId } = req.params;
+    if (!intervieweeId) {
+        return next(new AppError("intervieweeId is required field", 404));
+    }
+    const appointment = await Appointment.find({ intervieweeId }).populate('interviewerId', { name: 1, email: 1 }).populate('intervieweeId', { name: 1, email: 1 });
+
+    if (!appointment) {
+        return next(new AppError("No Appointment found with that ID", 404));
+    }
+    res.status(201).json({
+        status: "success",
+        count: appointment.length,
+        Appointment: appointment,
+    });
+});
+
+const GetAllInterviewerAppointmentBYId = catchAsync(async (req, res, next) => {
+    const { interviewerId } = req.params;
+    if (!interviewerId) {
+        return next(new AppError("intervieweeId is required field", 404));
+    }
+    const appointment = await Appointment.find({ interviewerId }).populate('interviewerId', { name: 1, email: 1 }).populate('intervieweeId', { name: 1, email: 1 });
+
+    if (!appointment) {
+        return next(new AppError("No Appointment found with that ID", 404));
+    }
+    res.status(201).json({
+        status: "success",
+        count: appointment.length,
+        Appointment: appointment,
+    });
+});
+
 module.exports = {
     AddAppointment,
     GetAppointment,
     GetAppointmentBYId,
     UpdateAppointment,
     DeleteAppointment,
+    GetAllIntervieweeAppointmentBYId,
+    GetAllInterviewerAppointmentBYId
 };

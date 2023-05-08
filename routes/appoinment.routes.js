@@ -12,4 +12,15 @@ router
   .patch(appointmentController.UpdateAppointment)
   .delete(appointmentController.DeleteAppointment);
 
+
+router
+  .route("/appointment/interviewer/:interviewerId")
+  .get(appointmentController.GetAllInterviewerAppointmentBYId)
+
+router
+  .route("/appointment/interviewee/:intervieweeId")
+  .get(appointmentController.GetAllIntervieweeAppointmentBYId)
+
+
+
 module.exports = router;

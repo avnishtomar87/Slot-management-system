@@ -43,7 +43,6 @@ const GetAvailabilities = catchAsync(async (req, res) => {
 const GetAvailabilityBYId = catchAsync(async (req, res, next) => {
     const { interviewerId } = req.params;
     const availability = await Availability.findOne({ interviewerId }).populate('interviewerId', { name: 1, email: 1 });
-    // const tour = await tours.findOne({_id:req.params.id})//same work as above
     if (!availability) {
         return next(new AppError("No availability found with that ID", 404));
     }
@@ -59,7 +58,7 @@ const UpdateAvailabilty = catchAsync(async (req, res, next) => {
     const { interviewerId } = req.params;
 
     if (!interviewerId || !slots || !slots[0]) {
-        return next(new AppError("please enter a valid slot", 404));
+        return next(new AppError("please enter a valid slot or interviewerId", 404));
     }
     const availability = await Availability.findOne({ interviewerId })
     const days = req.body.slots[0].day;
@@ -76,8 +75,10 @@ const UpdateAvailabilty = catchAsync(async (req, res, next) => {
     await Availability.updateOne({ id: availabilityId }, {
         $push: {
             slots: req.body.slots
-        }
-    });
+        },
+    },
+        { runValidators: true }
+    );
     const data = await Availability.findOne({ interviewerId })
     res.status(200).json({
         status: "success",
@@ -111,7 +112,7 @@ const DeleteSlot = catchAsync(async (req, res, next) => {
     const dbSlots = availability.slots;
 
     const filteredSlots = filterSlots(dbSlots, day, time)
-   
+
     const data = await Availability.findByIdAndUpdate(availability._id, {
         slots: filteredSlots,
     }, {

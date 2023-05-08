@@ -1,11 +1,8 @@
 const express = require("express");
 const morgan = require("morgan");
-const rateLimit = require("express-rate-limit");
 const helmet = require("helmet");
 const mongoSantize = require("express-mongo-sanitize");
 const xss = require("xss-clean");
-const hpp = require("hpp");
-
 const AppError = require("./utils/appError");
 const globalErrorHandler = require("./controllers/errroController");
 const interviewerRouter = require("./routes/interviewer.routes");
@@ -20,19 +17,10 @@ const app = express();
 app.use(helmet());
 
 
-
 //for logging development
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
-
-//for limiting api call from same IP address
-const Limiter = rateLimit({
-  max: 100,
-  windowMs: 60 * 60 * 1000,
-  message: "Too many requests in an hour , please try after an hour",
-});
-app.use(`/api`, Limiter);
 
 //for parse body
 app.use(express.json({ limit: "10kb" }));
@@ -42,20 +30,6 @@ app.use(mongoSantize());
 
 //data sanitize
 app.use(xss());
-
-//prevent parameter pollution
-app.use(
-  hpp({
-    whitelist: [
-      "duration",
-      "ratingsAverage",
-      "ratingsQuantity",
-      "maxGroupSize",
-      "difficulty",
-      "price",
-    ],
-  })
-);
 
 //for serving static files
 app.use(express.static(`${__dirname}/public`));

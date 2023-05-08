@@ -6,32 +6,6 @@ const availabilitySchema = new mongoose.Schema({
         required: [true, "please interviewer id"],
         ref: "interviewer"
     },
-    // slot: [
-    //     {
-    //         _id: false,
-    //         type: String,
-    //         required: [true, "please enter slot timing"],
-    //         default: "10-11am",
-    //         enum: [
-    //             "10-11am",
-    //             "11-12pm",
-    //             "12-01pm",
-    //             "01-02pm",
-    //             "02-03pm",
-    //             "03-04ppm",
-    //             "04-05pm",
-    //             "05-06pm",
-    //             "06-07pm",
-    //             "07-08pm",
-    //         ],
-    //     },],
-    // days: [{
-    //     _id: false,
-    //     required: [true, "please enter days"],
-    //     default: "10-11am",
-    //     type: mongoose.Schema.Types.Number,
-    //     enum: [0, 1, 2, 3, 4, 5, 6]
-    // }],
     slots: [{
         _id: false,
         day: {
